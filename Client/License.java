@@ -14,7 +14,7 @@ public class License {
 		cli = new License(); 
 		
 		// socket tcp connection 
-		String ip = "192.168.2.35"; 
+		String ip = "192.168.2.5"; 
 		int port = 6969; 
 		 
 		
@@ -28,10 +28,12 @@ public class License {
 		cli.socketConnect(ip, port);
 		 
 		 //run encryption to decide on values
-		diffieHellman();
+		//diffieHellman();
+		 
+		 cli.echo("7, 3, 4");
 		 
 		 // were the codes legit and working?
-		validate(cli.echo(code), code); 
+		//validate(cli.echo(code), code); 
 		
 		// finished, close connection 
 		cli.socketClose();

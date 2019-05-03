@@ -1,0 +1,34 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Server in node to read sql and take connections from clients to verify activation codes",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LoganCarter08/Licensed-Nesting-Test.git"
+  },
+  "keywords": [
+    "nesting",
+    "licensing",
+    "node",
+    "js",
+    "java",
+    "luhn",
+    "diffie",
+    "hellman"
+  ],
+  "author": "Logan Carter",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LoganCarter08/Licensed-Nesting-Test/issues"
+  },
+  "homepage": "https://github.com/LoganCarter08/Licensed-Nesting-Test#readme",
+  "dependencies": {
+    "express": "^4.16.4",
+    "mysql": "^2.17.1"
+  }
+}
