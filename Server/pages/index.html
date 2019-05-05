@@ -12,19 +12,56 @@
 </head>
 <body>
 <div>
-<div>
-<nav class="navbar navbar-inverse" role="navigation" style="padding-left:130px;">
-       <ul class="nav navbar-nav">
-      <li class="active"><a href="/">Home<span class="sr-only">(current)</span></a></li>
-      <li><a href="/about">About us</a></li>
-      <li><a href="/contact">Contact us</a></li>
-    </ul>
-</nav>
-</div>
+
 <br/>
-<div class="jumbotron"> <p>
-This is place to put content. You can put slider, short description about your website and place some links for navigation.
-</p></div>
+<div class="jumbotron"> 
+<h3> Generate Codes </h3>
+<p>
+	<form action="/Created" method="POST">
+    Customer Name: <input type="text" name="customer" id="customer">
+	<br/>
+	Product: <select name="product" id = "product">
+		<option value="1">Nesting 1</option>
+		<option value="2">Nesting 2</option>
+		<option value="3">DXF Importing</option>
+	</select><br/>
+	Expiration: <select name="expiration" id = "exp">
+		<option value="13">Permanent</option>
+		<option value="1">1 Month</option>
+		<option value="3">3 Month</option>
+		<option value="6">6 Month</option>
+		<option value="12">1 Year</option>
+	</select><br/>
+    <button type="submit">Send</button>
+  </form>
+</p>
+
+<h3> Delete Codes </h3>
+Please only use one field at a time. If both are use, only customer will be respected. 
+<p>
+	<form action="/Deleted" method="POST">
+    Customer Name: <input type="text" name="customer" id="customer">
+	<br/>
+	Code Number: <input type="text" name="code" id="code">
+	<br/>
+    <button type="submit">Send</button>
+  </form>
+</p>
+
+<h3>Mail Codes </h3>
+<p>
+	<form action="/Sent" method="POST">
+	Customer Name: <input type="text" name="customer" id="customer">
+	<br/>
+    Customer Email: <input type="text" name="email" id="email">
+	<br/>
+    <button type="submit">Send</button>
+  </form>
+</p>
+
+
+
+</div>
 </div>
 </body>
 </html>
