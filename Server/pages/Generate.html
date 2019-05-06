@@ -14,8 +14,8 @@
 <div>
 <nav class="navbar navbar-inverse" role="navigation" style="padding-left:130px;">
          <ul class="nav navbar-nav">
-        <li class="active"><a href="/">Home</a></li>
-        <li><a href="/Generate">Generate<span class="sr-only">(current)</span></a></li>
+        <li><a href="/">Home</a></li>
+        <li class="active"><a href="/Generate">Generate<span class="sr-only">(current)</span></a></li>
 		<li><a href="/Delete">Delete<span class="sr-only">(current)</span></a></li>
 		<li><a href="/Renew">Renew<span class="sr-only">(current)</span></a></li>
 		<li><a href="/Email">Email<span class="sr-only">(current)</span></a></li>
@@ -23,7 +23,32 @@
 </nav>
 </div>
 <div>
-<h3>Admin Portal for Activation Codes</h3>
+<div class="jumbotron"> 
+<h3> Generate Codes </h3>
+<p>
+	<form action="/Created" method="POST">
+	Username: <input type="text" name="username" id="username"> <br/>
+	Password: <input type="text" name="password" id="password"> <br/><br/>
+    Customer Name: <input type="text" name="customer" id="customer">
+	<br/>
+	Product: <select name="product" id = "product">
+		<option value="1">Nesting 1</option>
+		<option value="2">Nesting 2</option>
+		<option value="3">DXF Importing</option>
+	</select><br/>
+	Expiration: <select name="expiration" id = "exp">
+		<option value="13">Permanent</option>
+		<option value="1">1 Month</option>
+		<option value="3">3 Month</option>
+		<option value="6">6 Month</option>
+		<option value="12">1 Year</option>
+	</select><br/>
+	 Count: <input type="text" name="count" id="count">
+	 <br/>
+    <button type="submit">Send</button>
+  </form>
+</p>
+
 </div>
 </div>
 </body>

@@ -14,16 +14,30 @@
 <div>
 <nav class="navbar navbar-inverse" role="navigation" style="padding-left:130px;">
          <ul class="nav navbar-nav">
-        <li class="active"><a href="/">Home</a></li>
+        <li><a href="/">Home</a></li>
         <li><a href="/Generate">Generate<span class="sr-only">(current)</span></a></li>
-		<li><a href="/Delete">Delete<span class="sr-only">(current)</span></a></li>
+		<li class = "active"><a href="/Delete">Delete<span class="sr-only">(current)</span></a></li>
 		<li><a href="/Renew">Renew<span class="sr-only">(current)</span></a></li>
 		<li><a href="/Email">Email<span class="sr-only">(current)</span></a></li>
       </ul>
 </nav>
 </div>
 <div>
-<h3>Admin Portal for Activation Codes</h3>
+<div class="jumbotron"> 
+<h3> Delete Codes </h3>
+Please only use one field at a time. If both are used then only customer will be respected. 
+<p>
+	<form action="/Deleted" method="POST">
+	Username: <input type="text" name="username" id="username"> <br/>
+	Password: <input type="text" name="password" id="password"> <br/><br/>
+    Customer Name: <input type="text" name="customer" id="customer">
+	<br/>
+	Code Number: <input type="text" name="code" id="code">
+	<br/>
+    <button type="submit">Send</button>
+  </form>
+</p>
+
 </div>
 </div>
 </body>
