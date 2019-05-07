@@ -425,17 +425,76 @@ var con = mysql.createConnection({
 con.connect(function(err) {
 	if (err) throw err;
 	console.log("Connected!");
+	 findPublicKey();
 });
 
+/*
+NOTE NOTE NOTE
+These values are technically not "safe" as they are too small. They are easy to do gcd on to decipher the code. This is due to the limitations 
+of int sizes in JS. would need to likely break up into several values and piece back together for correct safeness. Keeping this way for now as
+it gets the point across. 
+*/
+function findPublicKey() {
+	var max = Math.pow(2, 7);
+	var min = Math.pow(2, 3);
+	var F = Math.floor(Math.random() * (max - min) + min);
+	var q = Math.floor(Math.random() * max);
+	var g =  Math.floor(Math.random() * F);
+	var a = findGcdOne(q);
+	var h = (Math.pow(g, a)) % q; //watch this value doesn't go to infinity. The % is calculated after the pow, so large numbers aren't supported. 
+														// below is commented code on a expmod function to fix this. Implement if needed. 
+	
+	/* questionable decision to drop a table instead of deleting values, but we'll go with it for now */
+	var queryString = 'DROP TABLE publicKey;';
+	con.query(queryString, (err,rows) => { if(err) throw err; });
+	queryString = 'CREATE TABLE publicKey(F int, h int, q int, g int, a int);';
+	con.query(queryString, (err,rows) => { if(err) throw err; });
+	queryString = 'INSERT INTO publicKey(F, h, q, g, a) VALUES (' + F + ', ' + h + ', ' + q + ', ' + g + ', ' + a + ');';
+	con.query(queryString, (err,rows) => { if(err) throw err; });
+}
 
-
-
-
+/* 
+function expmod( base, exp, mod ){
+  if (exp == 0) return 1;
+  if (exp % 2 == 0){
+    return Math.pow( expmod( base, (exp / 2), mod), 2) % mod;
+  }
+  else {
+    return (base * expmod( base, (exp - 1), mod)) % mod;
+  }
+}
+*/
 
 
 var HOST = require('dns').lookup(require('os').hostname(), function (err, add, fam){})// get the ip address from this computer so I don't have to keep checking it after restarts
 
 var PORT = 6969; // TCP LISTEN port 
+
+
+function gcd (a, b) {
+	if (b) {
+		return gcd(b, a % b);
+	}	else {
+		return Math.abs(a);
+	}
+}
+
+function findGcdOne(q) {
+	var check = Math.floor(Math.random() * (+q)); // probably need low value 
+	while (gcd(check, q) != 1) {
+		check = Math.floor(Math.random() * (+q));
+	}
+	return check;
+}
+
+function decode(data, a) {
+	var vals = data.split(' ');
+	var p = vals[0];
+	var s = Math.pow(p, a);
+	var code = (vals[1] / s).split('\-');
+	var cust = vals[2] / s;
+	return [code[0], code[1], code[2], code[3], cust];
+}
 
 // Create an instance of the Server and waits for a conexão 
 net.createServer(function(sock) { 
@@ -445,20 +504,35 @@ net.createServer(function(sock) {
 
 	// Add a 'data' - "event handler" in this socket instance 
 	// data was received in the socket 
-	// get g, p, and A 
 	sock.on('data', function(data) { 
 		// send back Bipc
-	
-		con.query('SELECT * FROM customers', (err,rows) => {
-			if(err) throw err;
-			console.log('Data received from Db:');
-			rows = JSON.parse(JSON.stringify(rows[0].code));
-			console.log(rows);
-		});
-		
-
+		// if data == xxx send our public key values 
+		// else decode the value and check our db for a matching code. Formatting is p, code, customer 
+		if (data.toString() == 'hello') {
+			var queryString = 'SELECT * FROM publicKey;';
+			con.query(queryString, (err,rows) => { 
+				if(err) throw err; 
+				var mess = rows[0].F + ' ' + rows[0].h + ' ' + rows[0].q + ' ' + rows[0].g;
+				sock.write(mess);
+			});
+		} else {
+			var queryString = 'SELECT * FROM publicKey;';
+			con.query(queryString, (err,rows) => { 
+				if(err) throw err; 
+				var recieved = decode(data, rows[0].a);
+				
+				// need to do ip checking here too. 
+				queryString = 'SELECT exp FROM customers WHERE code1 = ' + recieved[0] + ' AND code2 = ' + recieved[1] + ' AND code3 = ' + recieved[2] + ' AND code4 = ' + recieved[3] + 'AND cust =' + recieved[4] + ';';
+				con.query(queryString, (err,rows) => { 
+					if (rows.length == 0) 
+						sock.write('0');
+					else 
+						sock.write('1');
+				});
+			});
+		}
 		console.log('Received: ' + data);
-		sock.write(data); 
+		//sock.write(data); 
 	}); 
 
 	// Add a 'close' - "event handler" in this socket instance 
