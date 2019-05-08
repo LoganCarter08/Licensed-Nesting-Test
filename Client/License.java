@@ -14,36 +14,35 @@ public class License {
 		cli = new License(); 
 		
 		// socket tcp connection 
-		String ip = "192.168.2.5"; 
+		String ip = "192.168.2.35"; 
 		int port = 6969; 
 		 
-		
-		//System.out.println("Sending: " + code);
-		code = code.replaceAll("\\-", ""); // pull out the - so we can encrypt it all together.
-		
-		// first prime exponent . arbitrary small value used
-		code = String.valueOf(Math.pow(Integer.parseInt(code), 5));
-		
-		// open the connection 
-		cli.socketConnect(ip, port);
 		 
-		 //run encryption to decide on values
-		//diffieHellman();
-		 
-		 cli.echo("7, 3, 4");
-		 
-		 // were the codes legit and working?
-		//validate(cli.echo(code), code); 
+		 /* 
+			check each code for verification. setting value to 1 for testing. 
+		*/
+		for (int i = 0; i < 1; i++)
+		{
+			//System.out.println("Sending: " + code);
+			code = code.replaceAll("\\-", ""); // pull out the - so we can encrypt it all together.
+			// open the connection 
+			cli.socketConnect(ip, port);
+			 
+			String returned = cli.echo("hello"); // get the servers public data 
+			//String encoded = encode(code, customer, parsedReturned); 
+			//cli.echo(encoded);
+		}
 		
 		// finished, close connection 
 		cli.socketClose();
 	} 
 	
-	private void diffieHellman()
-	{
-		// send and receive values here and determine encryption values 
-		// get 3 random values for g, p, and A. g and p must be prime 
-		cli.echo("7, 3, 4"); //test values 
+	private String encode (String code, String cust, String encrypt) {
+		//int k = value in F where gcd(k, q) == 1
+		// p = expMod(g, k, q);
+		// s = expMod(h, k, q);
+		// code = p + " " + code in ascii * s + " " + customer in ascii * s
+		return code;
 	}
 	
 	private boolean validate(String returned, String code)
