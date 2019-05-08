@@ -435,14 +435,13 @@ of int sizes in JS. would need to likely break up into several values and piece 
 it gets the point across. 
 */
 function findPublicKey() {
-	var max = Math.pow(2, 7);
-	var min = Math.pow(2, 3);
+	var max = Math.pow(2, 30);
+	var min = Math.pow(2, 15);
 	var F = Math.floor(Math.random() * (max - min) + min);
 	var q = Math.floor(Math.random() * max);
 	var g =  Math.floor(Math.random() * F);
 	var a = findGcdOne(q);
-	var h = (Math.pow(g, a)) % q; //watch this value doesn't go to infinity. The % is calculated after the pow, so large numbers aren't supported. 
-														// below is commented code on a expmod function to fix this. Implement if needed. 
+	var h = (expMod(g, a, q)); // might need to be mod F
 	
 	/* questionable decision to drop a table instead of deleting values, but we'll go with it for now */
 	var queryString = 'DROP TABLE publicKey;';
@@ -453,17 +452,18 @@ function findPublicKey() {
 	con.query(queryString, (err,rows) => { if(err) throw err; });
 }
 
-/* 
-function expmod( base, exp, mod ){
-  if (exp == 0) return 1;
-  if (exp % 2 == 0){
-    return Math.pow( expmod( base, (exp / 2), mod), 2) % mod;
+// mod as we square vs doing square then mod. This will prevent overflowing of registers
+function expMod (base, exp, mod ) {
+  if (exp == 0) 
+	return 1;
+  if (exp % 2 == 0) {
+    return Math.pow(expMod( base, (exp / 2), mod), 2) % mod;
   }
   else {
-    return (base * expmod( base, (exp - 1), mod)) % mod;
+    return (base * expMod( base, (exp - 1), mod)) % mod;
   }
 }
-*/
+
 
 
 var HOST = require('dns').lookup(require('os').hostname(), function (err, add, fam){})// get the ip address from this computer so I don't have to keep checking it after restarts
@@ -488,10 +488,15 @@ function findGcdOne(q) {
 }
 
 function decode(data, a) {
-	var vals = data.split(' ');
+	var vals = data;
+	
+	/*
+		convert from ascii to string then math down below 	
+	*/
+	
 	var p = vals[0];
 	var s = Math.pow(p, a);
-	var code = (vals[1] / s).split('\-');
+	var code = (vals[1]).split('\-'); // remember to divide by s to get real value
 	var cust = vals[2] / s;
 	return [code[0], code[1], code[2], code[3], cust];
 }
@@ -505,29 +510,32 @@ net.createServer(function(sock) {
 	// Add a 'data' - "event handler" in this socket instance 
 	// data was received in the socket 
 	sock.on('data', function(data) { 
-		// send back Bipc
-		// if data == xxx send our public key values 
-		// else decode the value and check our db for a matching code. Formatting is p, code, customer 
-		if (data.toString() == 'hello') {
-			var queryString = 'SELECT * FROM publicKey;';
+		var splitted= data.toString('ascii').split(' ');
+		//var splitted = data.split(' ');
+		var queryString = 'SELECT * FROM publicKey;';
+		if (splitted[0] == 'hello') {
 			con.query(queryString, (err,rows) => { 
 				if(err) throw err; 
 				var mess = rows[0].F + ' ' + rows[0].h + ' ' + rows[0].q + ' ' + rows[0].g;
+				console.log('Writing: ' + mess);
 				sock.write(mess);
+				sock.end();
 			});
 		} else {
-			var queryString = 'SELECT * FROM publicKey;';
 			con.query(queryString, (err,rows) => { 
 				if(err) throw err; 
-				var recieved = decode(data, rows[0].a);
+				var recieved = decode(splitted, rows[0].a);
 				
 				// need to do ip checking here too. 
 				queryString = 'SELECT exp FROM customers WHERE code1 = ' + recieved[0] + ' AND code2 = ' + recieved[1] + ' AND code3 = ' + recieved[2] + ' AND code4 = ' + recieved[3] + 'AND cust =' + recieved[4] + ';';
 				con.query(queryString, (err,rows) => { 
-					if (rows.length == 0) 
+					if (!rows) {
 						sock.write('0');
-					else 
+						sock.end();
+					} else { 
 						sock.write('1');
+						sock.end();
+					}
 				});
 			});
 		}
@@ -535,6 +543,9 @@ net.createServer(function(sock) {
 		//sock.write(data); 
 	}); 
 
+	sock.on('error', function(data) {
+		console.log('Connection ended abruptly with ' + sock.remoteAddress);
+	});
 	// Add a 'close' - "event handler" in this socket instance 
 	sock.on('close', function(data) { 
 		// closed connection 
