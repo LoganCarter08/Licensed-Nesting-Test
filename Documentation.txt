@@ -1,0 +1,70 @@
+Documentation:
+
+	The following is meant to be a way to convey my thought process throughout this project and hopefully shed some light on my
+my choices. The primary goal of this project is to test out and try some algorithms that have intrigued me and I wanted to learn 
+more about. This is also intended to hopefully stress my algorithm design skills. The documentation will be added and modified as 
+the project progresses and will be incomplete in many places. 
+
+NOTE: 
+	Any form of proof in the following is meant to provide logic to my thought process. They will not be correct formatting, proper
+	proofs. 
+	
+Languages: 
+		In my opinion, all programs should be available on all operating systems. As a guy who loves Linux and respects Windows, 
+		I would want the ability to use a software on both depending on the project or situation. The following language choices all
+		come with the promise to work exactly the same on all operating systems. This means that this software can be downloaded
+		an ran on any major OS with minimal work. 
+		
+	NodeJS: 
+		Previously, I handled server side code with C. Both handling sockets and job distribution synchronously is supported much 
+		better in Node. C, likely, could be better for security and potentially scalability. However, I felt this was a great opportunity
+		to learn a new language. Node makes for an amazing server side language. However, since it is a scripting language, I am 
+		worried about some of the security aspects. I will likely look into the ability to compile Node down into something that 
+		is harder for anybody to read if they were to gain access the server computer directly. 
+			
+	mySQL:
+		mySQL takes the great features from Microsoft SQL and makes them available on more than just Windows and is a much 
+		more simplistic install and management. I believe that it makes for a great experience for users. mySQL is also a secure 
+		database system as it does require login in order to access or modify any contain data. 
+		
+	Java: 
+		Java is a hugely supported language that has a great object oriented design while retaining the ability to be used on any 
+		major OS. The design of Java allows for complex algorithms to be written in a much simpler way for humans to read and 
+		understand. As this software has the intention to work in a 3 dimensional area with potentially complex shapes, I felt as 
+		though having a language such as this would help greatly. Java also has well built Socket and file access libraries that
+		will come in handy. 
+
+LICENSING:
+	Licensing is a touchy subject for many companies. Codes need to be kept sealed tight where packet sniffers and simple attacks
+	cannot retrieve them. Currently, in V1, the software is susceptible to a number of attacks. These attacks will be touched on in
+	future versions. Now that a basic server is working, I will be moving onto other parts of the software before I come back to touch
+	up and increase security. 
+			
+		
+	Algorithms: 
+		
+		Luhns Algorithm:
+			Luhns Algorithm is a way to check codes for packet loss or if they are invalid. This does not require us to check our list of 
+			codes saving some valuable time. This algorithm is currently used by credit card companies to determine if the entered card
+			is a valid card or not. The idea is to sum up the values and check if the checksum is correct. I will not go into depth about it 
+			here, but rather link a good article on it below. In the future versions I may introduce Hamming encoding instead as I have 
+			Hamming programmed in C already. However, Hamming may be overkill in this situation as we do not need to know which 
+			bit is invalid. We only care if it is or is not valid. 
+			
+			More Information: https://en.wikipedia.org/wiki/Luhn_algorithm
+			
+		El Gamal:
+			To ensure that the code is not read by any man in the middle, we must encrypt the code. Originally I wanted to Diffie Hellman
+			as it would be a safer system. DH would be safer since we would not be reusing our keys between connections, which would 
+			limit the time that an attacker could factor our key and steal our code. However, DH would require a handshake and the 
+			creation of large primes. This would take a large amount of processing power and CPU spins on a server, even with 
+			asynchronous connections, could be fatal to the reliability of connections. As a result, I chose El Gamal. Currently I have 
+			the public key of our server stored in a mySQL database and it is retrieved and used whenever we are sent a request for 
+			the public key or a message containing a potential code. Every 20 minutes we generate a new public key to help reduce 
+			the chances of the secret key being factored and used to steal codes. *** currently JS and Java maxinteger are well 
+			below the size limit to call the ecryption safe. This also prevents the encoding of the customer name. Therefore, in future 
+			versions I would like to implement a Big Integer library from scratch that can support keys several hundred digits long. ***
+			
+			More Information: https://wwwmayr.in.tum.de/konferenzen/Jass05/courses/1/presentations/Meier%20Andreas%20The%20ElGamal%20Cryptosystem.pdf
+			
+			
