@@ -4,17 +4,20 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter; 
 import java.net.Socket; 
 import java.net.UnknownHostException; 
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 
 public class License { 
 	// socket object 
 	private Socket socket = null; 
 	private License cli;
 	
-	public void verify(String code) throws UnknownHostException, IOException, ClassNotFoundException { 
+	public void verify() throws UnknownHostException, IOException, ClassNotFoundException { 
 		cli = new License(); 
 		
 		// socket tcp connection 
-		String ip = "192.168.2.35"; 
+		String ip = "192.168.2.5"; 
 		int port = 6969; 
 		 
 		 
@@ -23,32 +26,107 @@ public class License {
 		*/
 		for (int i = 0; i < 1; i++)
 		{
-			//System.out.println("Sending: " + code);
-			code = code.replaceAll("\\-", ""); // pull out the - so we can encrypt it all together.
-			// open the connection 
-			cli.socketConnect(ip, port);
-			 
-			String returned = cli.echo("hello"); // get the servers public data 
-			//String encoded = encode(code, customer, parsedReturned); 
-			//cli.echo(encoded);
+			/*
+				if the code checking failed we might be in the middle of changing a new public key
+				wait half second and try again. should be enough time for server to update.
+				If we failed twice then code may be incorrect
+			*/
+			if (!sendReceive(ip, port)) {
+				try {
+					TimeUnit.MILLISECONDS.sleep(500);
+				} catch (InterruptedException e) {
+					
+				}
+				sendReceive(ip, port);
+			}
 		}
 		
 		// finished, close connection 
 		cli.socketClose();
 	} 
 	
+	private boolean sendReceive(String ip, int port) throws UnknownHostException, IOException, ClassNotFoundException{
+		cli.socketConnect(ip, port);
+			 
+		String returned = cli.echo("hello"); // get the servers public data 
+		//String encoded = encode(code, customer, parsedReturned); 
+		System.out.println("Recieved: " + returned);
+		String encoded = encode("4587-0010-7484-4881", "test", returned); 
+		System.out.println(encoded);
+		cli.socketClose();
+		cli.socketConnect(ip, port);
+			
+		String returned2 = cli.echo(encoded);
+		System.out.println("Recieved2: " + returned2);
+		return !returned2.equals("0");
+	}
+
+	private int gcd(int a, int b) {
+		if (b != 0) {
+			return gcd(b, a % b);
+		}	else {
+			return Math.abs(a);
+		}
+	}
+
+	private int findGcdOne(int q) {
+		Random random = new Random();
+		int check = random.nextInt(q); // probably need low value 
+		while (gcd(check, q) != 1) {
+			check = random.nextInt(q);
+		}
+		return check;
+	}
+
+	private int expMod (int base, int exp, int mod ) {
+		if (exp == 0) 
+			return 1;
+		if (exp % 2 == 0) {
+			return (int) (Math.pow(expMod( base, (exp / 2), mod), 2) % mod);
+		} else {
+			return (base * expMod( base, (exp - 1), mod)) % mod;
+		}
+	}
+
+	/*
+		code: sent in form of xxxx xxxx xxxx xxxx 
+		cust: string of customer name 
+		encrpt: F h q g in string 
+	*/
 	private String encode (String code, String cust, String encrypt) {
-		//int k = value in F where gcd(k, q) == 1
-		// p = expMod(g, k, q);
-		// s = expMod(h, k, q);
-		// code = p + " " + code in ascii * s + " " + customer in ascii * s
-		return code;
+		String[] array = encrypt.split("\\s+"); // find variables in the string the server sent
+		int k = findGcdOne(Integer.parseInt(array[0]));//value in F where gcd(k, q) == 1
+		int p = expMod(Integer.parseInt(array[3]), k, Integer.parseInt(array[2])); // g^k mod q
+		int s = expMod(Integer.parseInt(array[1]), k, Integer.parseInt(array[2])); // h ^k mod q
+		while (p == 1 || s == 1) {
+			k = findGcdOne(Integer.parseInt(array[0]));//value in F where gcd(k, q) == 1
+			p = expMod(Integer.parseInt(array[3]), k, Integer.parseInt(array[2])); // g^k mod q
+			s = expMod(Integer.parseInt(array[1]), k, Integer.parseInt(array[2])); // h ^k mod q
+		}
+		// code = p + " " + codes * s + " " + customer in ascii * s
+		return Integer.toString(p) + encodeCodes(code, s) + " " + cust; //convertToAscii(cust, s) ;
 	}
 	
-	private boolean validate(String returned, String code)
-	{
-		// double validation. Was the converted code found on server? Was our check here also validated?
-		return true;
+	private String encodeCodes(String code, int s) {
+		String[] codes = code.split("\\-");
+		String finalCode = "";
+		for (int i = 0; i < 4; i++) {
+			finalCode = finalCode + " " + Integer.toString(Integer.parseInt(codes[i]) * s); // need to check and test for max int. May need to add expmod but look into how that'll effect decode
+		}
+		return finalCode;
+	}
+	
+	/*
+		Convert the string into ascii symbols. Converting this to an int will 
+		preserve the position of each letter. Thus string concat and manip
+		is needed
+	*/
+	private String convertToAscii(String word, int s) {
+		String holder = "";
+		for (int i = 0; i < word.length(); i++) {
+			holder = holder + Integer.toString(((int) word.charAt(i)) * s);
+		}
+		return holder;
 	}
 	
 	// make the connection with the socket 
@@ -89,50 +167,16 @@ public class License {
 		return socket; 
 	} 
 	
-	// check if number is a prime or not
-	public static boolean MillerRabin(int n)
-	{
-		int nMinusOne = n - 1;
-		int twosMultipleCounter = 0;
+	private void JSONReader() {
+		// create file reader 
 		/*
-			using this we can extract the 2^x value where twosMultipleCounter == x
+			for each line in file 
+			ignore { 
+			take line, remove :"{} and turn into array 
+			if first item = codes then parse that string 
+			if item is cust then push that into the array, return that
+			close file 
+			return 
 		*/
-		while (nMinusOne % 2 == 0)
-		{
-			nMinusOne = nMinusOne / 2;
-			twosMultipleCounter++;
-		}
-			
-		// n - 1 = 2^nMinusOne * m. Finding m here
-		double m = (n - 1) / Math.pow(2, twosMultipleCounter);
-		
-		//Random rand = new Random();
-		/* complete this testing 3 times with a new base number each time. This will
-			increase likelihood of catching psuedoprimes and other cases that could
-			cause us to fail. Increasing to a higher number would increase correctness
-		*/
-		for (int j = 0; j < 3; j++)
-		{
-			// The size and value of this random number matter little to the correctness. 
-			// Chose 10000 to have a broad range to test with and 0 and 1 cannot work
-			//double checkValue = BigInteger.ModPow(rand.Next(2, 10000), m, n); 
-			/* 
-				For complete correctness this would have to go to infinity and not 100.
-				Miller Rabin is a probability based primality test meaning that it cannot
-				say that the number is truly prime with exact correctness. Increase this
-				value to increase its correctness. 
-			*/
-			for (int i = 0; i < 100; i++)
-			{
-				// We know that if this value becomes 1 we have a composite value, return false
-				if (true)//checkValue == 1)
-				{
-					return false;
-				}
-				//checkValue = BigInteger.ModPow(checkValue, 2, n); 
-			}
-		}
-		
-		return true;
 	}
 }

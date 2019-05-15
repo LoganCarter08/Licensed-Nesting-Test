@@ -5,7 +5,7 @@ public class LicensedNest
 		try 
 		{
 			License lic = new License();
-			lic.verify("12");
+			lic.verify();
 		}
 		catch (Exception e)
 		{

@@ -101,8 +101,8 @@ function sum(value, req, res) {
 		value.push(0);
 	else 
 		value.push(10 - sum % 10);
-	//console.log(sum);
-	//console.log(value.toString());
+	console.log(sum);
+	console.log(value.toString());
 	return value;
 }
 
@@ -242,44 +242,33 @@ function padZeros(code, req, res) {
 		return code;
 }
 
-function emailString(rows, req, res) {
-	var string = "Your codes are as follows. Please enter the command of activate into the software and paste the following codes to use them.\n";
-	console.log(rows[0]);
-	for (var i = 0; i < rows.length; i++) {
-		string = string + padZeros(rows[i].code1.toString()) +"-" + padZeros(rows[i].code2.toString()) +"-" + padZeros(rows[i].code3.toString()) +"-" + padZeros(rows[i].code4.toString()) + "\t";
-		
-		if (rows[i].product.toString() == "1")
-			string = string + "Nesting 1\t";
-		else if (rows[i].product.toString() == "2")
-			string = string + "Nesting 2\t";
-		else if (rows[i].product.toString() == "3")
-			string = string + "DXF Import\t";
-		
-		if (rows[i].expiration.toString() == "13")
-			string = string + "Permanent\n";
-		else if (rows[i].expiration.toString() == "1")
-			string = string + "1 Month\n";
-		else if (rows[i].expiration.toString() == "3")
-			string = string + "3 Month\n";
-		else if (rows[i].expiration.toString() == "6")
-			string = string + "6 Month\n";
-		else if (rows[i].expiration.toString() == "12")
-			string = string + "1 Year\n";
-	}
-	return string;
-}
 
+function jsonify(rows, cust) {
+	var jsonified = '{\n"codes":"';
+	for (var i = 0; i < rows.length; i++) {
+		jsonified = jsonified + padZeros(rows[i].code1.toString()) +"-" + padZeros(rows[i].code2.toString()) +"-" + padZeros(rows[i].code3.toString()) +"-" + padZeros(rows[i].code4.toString());
+		if (i != rows.length - 1) {
+			jsonified = jsonified + ', ';
+		}
+	}
+	return jsonified + '",\n"customer":"' + cust +'"\n}';
+}
 
 app.post("/Sent", (req,res) => {
 	con.query('SELECT * FROM users WHERE username = \'' + req.body.username + '\' AND pass = \'' + req.body.password + '\';', (err,rows) => {
 		if (rows.length != 0) {
 			var queryString = 'SELECT code1, code2, code3, code4, product, exp FROM customers WHERE cust = \'' + req.body.customer + '\';';
 			con.query(queryString, (err,rows) => {
+				var JSONString = jsonify(rows, req.body.customer);
 				var mailOptions = {
 					from: auth.email,
 					to: req.body.email,
 					subject: 'Nesting Product Codes',
-					text: emailString(rows)
+					text: 'Your codes are attached. Please place this file in your program directory',
+					attachments: [ {
+						filename: 'codes.json',
+						content: JSONString
+						}]
 				};
 				
 				transporter.sendMail(mailOptions, function(error, info){
@@ -435,22 +424,22 @@ of int sizes in JS. would need to likely break up into several values and piece 
 it gets the point across. 
 */
 function findPublicKey() {
-	var max = Math.pow(2, 30);
-	var min = Math.pow(2, 15);
+	var max = Math.pow(2, 15);
+	var min = Math.pow(2, 10);
 	var F = Math.floor(Math.random() * (max - min) + min);
 	var q = Math.floor(Math.random() * max);
 	var g =  Math.floor(Math.random() * F);
 	var a = findGcdOne(q);
 	var h = (expMod(g, a, q)); // might need to be mod F
 	
-	/* questionable decision to drop a table instead of deleting values, but we'll go with it for now */
-	var queryString = 'DROP TABLE publicKey;';
-	con.query(queryString, (err,rows) => { if(err) throw err; });
-	queryString = 'CREATE TABLE publicKey(F int, h int, q int, g int, a int);';
-	con.query(queryString, (err,rows) => { if(err) throw err; });
-	queryString = 'INSERT INTO publicKey(F, h, q, g, a) VALUES (' + F + ', ' + h + ', ' + q + ', ' + g + ', ' + a + ');';
+	queryString = 'UPDATE publicKey SET F = ' + F + ', h = ' + h + ', q = ' + q + ', g = ' + g + ', a = ' + a + ';';
 	con.query(queryString, (err,rows) => { if(err) throw err; });
 }
+
+setTimeout(function() {
+	console.log('Setting new public key, sorry to current connections');
+    findPublicKey();
+}, 20 * 60 * 1000);
 
 // mod as we square vs doing square then mod. This will prevent overflowing of registers
 function expMod (base, exp, mod ) {
@@ -487,60 +476,102 @@ function findGcdOne(q) {
 	return check;
 }
 
-function decode(data, a) {
-	var vals = data;
-	
+/*
+	recieved format is:
+	p xxxx xxxx xxxx xxxx cust
+	where xxxx and cust are both multiplied by s and cust is in ascii format 
+*/
+function decode(vals, a, q) {
+	var s = expMod(vals[0], parseInt(a), q);
 	/*
 		convert from ascii to string then math down below 	
 	*/
+	//var cust = convertToString(vals[5], s);
+	return [formatCode(vals[1], s), formatCode(vals[2], s), formatCode(vals[3], s), formatCode(vals[4], s)];
+}
+
+function formatCode (code, s) { 
+	code = (parseInt(code) / s).toString();
+	while (code.length < 4) {
+		code = '0' + code;
+	}
+	return code;
+}
+
+// takes ascii decimal word in int form and converts it to string 
+function convertToString(cust, s) {
+	var holder = '';
 	
-	var p = vals[0];
-	var s = Math.pow(p, a);
-	var code = (vals[1]).split('\-'); // remember to divide by s to get real value
-	var cust = vals[2] / s;
-	return [code[0], code[1], code[2], code[3], cust];
+	while (cust.length > 1) {
+		var tempString = cust.charAt(cust.length - 2) + cust.charAt(cust.length - 1);
+		if (parseInt(tempString) / s == 64) {
+			holder = ' ' + holder;
+			cust = cust.subString(0, cust.length - 2);
+		} else {
+			tempString = cust.charAt(cust.length - 3) + tempString;
+			
+		}
+	}
+	console.log('Plain test cust: ' + holder);
+	return holder;
+}
+
+
+function verifyLuhn(rec) {
+	var code = rec[0] + rec[1] + rec[2] + rec[3];
+	var sum = 0;
+	for (var i = 0; i < 15; i++) {
+		var dig = parseInt(code.charAt(i));
+		if (i % 2 == 1) // check every other digit. starting after 0
+		{
+			dig = dig* 2;
+			if (dig > 9) {
+				dig = dig - 9; // 1 + dig % 10;
+			}
+		}
+		sum = sum + dig; 
+	}
+	sum = sum + parseInt(code.charAt(15));
+	return (sum % 10 == 0);
 }
 
 // Create an instance of the Server and waits for a conexão 
 net.createServer(function(sock) { 
-
-	// Receives a connection - a socket object is associated to the connection automatically 
-	//console.log('CONNECTED: ' + sock.remoteAddress +':'+ sock.remotePort); 
-
 	// Add a 'data' - "event handler" in this socket instance 
 	// data was received in the socket 
 	sock.on('data', function(data) { 
-		var splitted= data.toString('ascii').split(' ');
-		//var splitted = data.split(' ');
+		//console.log('Connected to: ' + sock.remoteAddress);
+		var splitted= data.toString('ascii').trim().split(' ');
 		var queryString = 'SELECT * FROM publicKey;';
 		if (splitted[0] == 'hello') {
 			con.query(queryString, (err,rows) => { 
 				if(err) throw err; 
 				var mess = rows[0].F + ' ' + rows[0].h + ' ' + rows[0].q + ' ' + rows[0].g;
-				console.log('Writing: ' + mess);
 				sock.write(mess);
 				sock.end();
 			});
 		} else {
 			con.query(queryString, (err,rows) => { 
 				if(err) throw err; 
-				var recieved = decode(splitted, rows[0].a);
-				
+				var recieved = decode(splitted, rows[0].a, rows[0].q);
+				if (!verifyLuhn(recieved)) {
+					sock.write('-1');
+					sock.end();
+					return;
+				}
 				// need to do ip checking here too. 
-				queryString = 'SELECT exp FROM customers WHERE code1 = ' + recieved[0] + ' AND code2 = ' + recieved[1] + ' AND code3 = ' + recieved[2] + ' AND code4 = ' + recieved[3] + 'AND cust =' + recieved[4] + ';';
+				queryString = 'SELECT * FROM customers WHERE code1 = ' + recieved[0] + ' AND code2 = ' + recieved[1] + ' AND code3 = ' + recieved[2] + ' AND code4 = ' + recieved[3] + ';';
 				con.query(queryString, (err,rows) => { 
-					if (!rows) {
+					if (rows.length == 0) {
 						sock.write('0');
 						sock.end();
 					} else { 
-						sock.write('1');
+						sock.write(rows[0].cust);
 						sock.end();
 					}
 				});
 			});
 		}
-		console.log('Received: ' + data);
-		//sock.write(data); 
 	}); 
 
 	sock.on('error', function(data) {
