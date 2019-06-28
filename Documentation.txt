@@ -2,8 +2,7 @@ Documentation:
 
 	The following is meant to be a way to convey my thought process throughout this project and hopefully shed some light on my
 my choices. The primary goal of this project is to test out and try some algorithms that have intrigued me and I wanted to learn 
-more about. This is also intended to hopefully stress my algorithm design skills. The documentation will be added and modified as 
-the project progresses and will be incomplete in many places. 
+more about. The documentation will be added and modified as the project progresses and will be incomplete in many places. 
 
 NOTE: 
 	Any form of proof in the following is meant to provide logic to my thought process. They will not be correct formatting, proper
